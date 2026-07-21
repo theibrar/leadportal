@@ -1,0 +1,130 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         String    @default("CLIENT") // ADMIN or CLIENT
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  profile      Profile?
+  activityLogs ActivityLog[]
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  phone       String?
+  avatarUrl   String?
+  companyName String?
+  timezone    String   @default("UTC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Client {
+  id           String           @id @default(uuid())
+  name         String
+  companyCode  String           @unique
+  contactEmail String
+  contactPhone String?
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  users        User[]
+  assignments  ClientCampaign[]
+  leads        Lead[]
+  webhookLogs  WebhookLog[]
+}
+
+model Campaign {
+  id          String           @id @default(uuid())
+  name        String
+  code        String           @unique
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  assignments ClientCampaign[]
+  leads       Lead[]
+}
+
+model ClientCampaign {
+  id           String     @id @default(uuid())
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  campaignId   String
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  webhookToken String     @unique @default(uuid())
+  secretKey    String     @default(uuid())
+  isActive     Boolean    @default(true)
+  assignedAt   DateTime   @default(now())
+
+  leads        Lead[]
+  webhookLogs  WebhookLog[]
+}
+
+model Lead {
+  id               String         @id @default(uuid())
+  clientId         String
+  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  campaignId       String
+  campaign         Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientCampaignId String
+  clientCampaign   ClientCampaign @relation(fields: [clientCampaignId], references: [id], onDelete: Cascade)
+
+  firstName        String
+  lastName         String?
+  email            String
+  phone            String?
+  source           String         @default("WEBHOOK")
+  status           String         @default("NEW") // NEW, CONTACTED, QUALIFIED, UNQUALIFIED, CONVERTED
+  customData       String?        // JSON stringified payload fields (UTMs, notes)
+  ipAddress        String?
+  userAgent        String?
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model WebhookLog {
+  id               String         @id @default(uuid())
+  clientId         String
+  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCampaignId String
+  clientCampaign   ClientCampaign @relation(fields: [clientCampaignId], references: [id], onDelete: Cascade)
+  
+  status           String         // SUCCESS, FAILED, REJECTED
+  httpStatusCode   Int
+  payload          String         // JSON stringified payload
+  errorMessage     String?
+  ipAddress        String?
+  executionTimeMs  Int
+  receivedAt       DateTime       @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?  // JSON stringified details
+  ipAddress String?
+  createdAt DateTime @default(now())
+}

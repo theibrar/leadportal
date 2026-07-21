@@ -1,0 +1,7 @@
+# Robots.txt for IbraSoft LeadPortal
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://leadportal.ibrasoft.com/sitemap.xml
