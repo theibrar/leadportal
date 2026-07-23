@@ -103,6 +103,12 @@ model Lead {
 
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+
+  @@index([clientId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId, createdAt])
 }
 
 model WebhookLog {
@@ -119,6 +125,10 @@ model WebhookLog {
   ipAddress        String?
   executionTimeMs  Int
   receivedAt       DateTime       @default(now())
+
+  @@index([clientId])
+  @@index([status])
+  @@index([receivedAt])
 }
 
 model ActivityLog {
@@ -129,4 +139,7 @@ model ActivityLog {
   details   String?  // JSON stringified details
   ipAddress String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

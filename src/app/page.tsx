@@ -46,7 +46,7 @@ export default function LoginPage() {
       {/* Premium Background Artwork Layer */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105 transition-transform duration-1000"
-        style={{ backgroundImage: "url('/login-bg.png')" }}
+        style={{ backgroundImage: "url('/login-bg.webp')" }}
       />
 
       {/* Radiant Gradient Blurs */}
