@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Megaphone, Plus, Link2, Copy, Check, Users, Webhook, Sparkles, Edit, Trash2 } from 'lucide-react';
+import { Megaphone, Plus, Link2, Copy, Check, Users, Webhook, Sparkles, Edit, Trash2, Globe, ShieldCheck } from 'lucide-react';
 import { WebhookCopyBox } from '@/components/WebhookCopyBox';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 const PRESET_CAMPAIGNS = [
   { name: 'Affordable Care Act (ACA)', code: 'ACA', description: 'Health insurance open enrollment & ACA lead intake.' },
@@ -19,6 +21,8 @@ const PRESET_CAMPAIGNS = [
 ];
 
 export default function CampaignsPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +31,13 @@ export default function CampaignsPage() {
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [isEditCampaignModalOpen, setIsEditCampaignModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isEditAssignmentModalOpen, setIsEditAssignmentModalOpen] = useState(false);
 
   // Form states
   const [campaignForm, setCampaignForm] = useState({ name: '', code: '', description: '' });
   const [editCampaignForm, setEditCampaignForm] = useState({ id: '', name: '', code: '', description: '' });
-  const [assignForm, setAssignForm] = useState({ clientId: '', campaignId: '' });
+  const [assignForm, setAssignForm] = useState({ clientId: '', campaignId: '', allowedDomains: '' });
+  const [editAssignmentForm, setEditAssignmentForm] = useState({ assignmentId: '', clientName: '', campaignName: '', allowedDomains: '' });
 
   const fetchData = async () => {
     const [cRes, clRes] = await Promise.all([fetch('/api/admin/campaigns'), fetch('/api/admin/clients')]);
@@ -70,9 +76,10 @@ export default function CampaignsPage() {
     if (data.success) {
       setIsCampaignModalOpen(false);
       setCampaignForm({ name: '', code: '', description: '' });
+      toast.success('Campaign template created successfully!');
       fetchData();
     } else {
-      alert(data.error || 'Failed to create campaign');
+      toast.error(data.error || 'Failed to create campaign');
     }
   };
 
@@ -91,22 +98,30 @@ export default function CampaignsPage() {
 
     if (data.success) {
       setIsEditCampaignModalOpen(false);
+      toast.success('Campaign details updated successfully!');
       fetchData();
     } else {
-      alert(data.error || 'Failed to update campaign');
+      toast.error(data.error || 'Failed to update campaign');
     }
   };
 
   const handleDeleteCampaign = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete campaign "${name}"? Any assigned client webhooks and leads for this campaign will be removed.`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Campaign',
+      message: `Are you sure you want to delete campaign "${name}"? Any assigned client webhooks and leads for this campaign will be removed.`,
+      confirmText: 'Delete Campaign',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     const res = await fetch(`/api/admin/campaigns/${id}`, { method: 'DELETE' });
     const data = await res.json();
 
     if (data.success) {
+      toast.success(`Campaign "${name}" was deleted successfully.`);
       fetchData();
     } else {
-      alert(data.error || 'Failed to delete campaign');
+      toast.error(data.error || 'Failed to delete campaign');
     }
   };
 
@@ -121,12 +136,35 @@ export default function CampaignsPage() {
 
     if (data.success) {
       setIsAssignModalOpen(false);
+      setAssignForm({ clientId: '', campaignId: '', allowedDomains: '' });
       fetchData();
-      alert(`🎉 Webhook generated! Webhook Token: ${data.assignment.webhookToken}`);
+      toast.success(`Webhook generated successfully! Token: ${data.assignment.webhookToken}`);
     } else {
-      alert(data.error || 'Failed to assign campaign');
+      toast.error(data.error || 'Failed to assign campaign');
     }
   };
+
+  const handleEditAssignmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/assign-campaign', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assignmentId: editAssignmentForm.assignmentId,
+        allowedDomains: editAssignmentForm.allowedDomains,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      setIsEditAssignmentModalOpen(false);
+      toast.success('Webhook domain whitelist updated successfully!');
+      fetchData();
+    } else {
+      toast.error(data.error || 'Failed to update domain whitelist');
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -237,8 +275,40 @@ export default function CampaignsPage() {
                       <span className="font-bold text-slate-900 flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-blue-600" /> {a.client?.name}
                       </span>
-                      <span className="text-[10px] text-emerald-700 font-mono font-bold">whk_active</span>
+                      <button
+                        onClick={() => {
+                          setEditAssignmentForm({
+                            assignmentId: a.id,
+                            clientName: a.client?.name || '',
+                            campaignName: c.name,
+                            allowedDomains: a.allowedDomains || '',
+                          });
+                          setIsEditAssignmentModalOpen(true);
+                        }}
+                        className="p-1 rounded bg-slate-200/60 hover:bg-blue-600 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 px-2 text-slate-700"
+                        title="Edit Webhook Security & Whitelisted Domains"
+                      >
+                        <Globe className="w-3 h-3 text-indigo-600" /> Security
+                      </button>
                     </div>
+
+                    {/* Allowed Domains Badge */}
+                    <div className="text-[10px]">
+                      {a.allowedDomains && a.allowedDomains.trim() ? (
+                        <span
+                          className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full cursor-help"
+                          title={`Whitelisted Ingestion Domains:\n${a.allowedDomains}`}
+                        >
+                          <ShieldCheck className="w-3 h-3 text-indigo-600" />
+                          Domain Whitelist: {a.allowedDomains.split(/[\n,\s]+/).filter(Boolean).join(', ')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-medium text-slate-500">
+                          <Globe className="w-3 h-3 text-slate-400" /> Any Domain Allowed
+                        </span>
+                      )}
+                    </div>
+
                     <WebhookCopyBox webhookUrl={`/api/webhooks/ingest/${a.webhookToken}`} />
                   </div>
                 ))}
@@ -437,6 +507,23 @@ export default function CampaignsPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-slate-700 font-bold mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-indigo-600" /> Whitelisted Ingestion Domains (Security)
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Optional</span>
+                </label>
+                <textarea
+                  placeholder="e.g. landingpage.com, myagency.com&#10;(Separate multiple domains with commas or newlines. Leave blank to allow any origin)"
+                  value={assignForm.allowedDomains}
+                  onChange={(e) => setAssignForm({ ...assignForm, allowedDomains: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-[11px]"
+                  rows={2}
+                ></textarea>
+                <p className="text-[10px] text-slate-500 mt-1">If specified, webhook ingestion requests from unlisted domains will be rejected with HTTP 403.</p>
+              </div>
+
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-700 font-medium">
                 ⚡ Assigning will instantly generate a unique endpoint (`/api/webhooks/ingest/whk_...`) with isolated client-bound database routing.
               </div>
@@ -451,6 +538,60 @@ export default function CampaignsPage() {
                 </button>
                 <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20">
                   Assign & Generate Webhook
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Webhook Security & Whitelisted Domains */}
+      {isEditAssignmentModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" /> Webhook Ingestion Domain Security
+              </h3>
+              <button onClick={() => setIsEditAssignmentModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditAssignmentSubmit} className="space-y-4 text-xs">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <p className="text-slate-900 font-bold">{editAssignmentForm.clientName}</p>
+                <p className="text-slate-500 font-medium">Campaign: {editAssignmentForm.campaignName}</p>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-4 h-4 text-indigo-600" /> Whitelisted Ingestion Domains
+                  </span>
+                </label>
+                <textarea
+                  placeholder="e.g. landingpage.com, myagency.com&#10;(Separate multiple domains with commas or newlines. Leave blank to allow any origin)"
+                  value={editAssignmentForm.allowedDomains}
+                  onChange={(e) => setEditAssignmentForm({ ...editAssignmentForm, allowedDomains: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-[11px]"
+                  rows={3}
+                ></textarea>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Requests coming from domains not listed here will be blocked before entering your database and logged as REJECTED.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditAssignmentModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20">
+                  Save Security Settings
                 </button>
               </div>
             </form>

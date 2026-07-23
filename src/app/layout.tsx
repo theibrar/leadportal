@@ -1,17 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -23,13 +25,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://leadportal.ibrasoft.com"),
   title: {
-    default: "IbraSoft LeadPortal v1.0.0 | Multi-Tenant Lead Management SaaS",
-    template: "%s | IbraSoft LeadPortal",
+    default: "IbraSoft Leads Portal",
+    template: "%s | IbraSoft Leads Portal",
   },
   description: "Enterprise multi-tenant lead management platform and real-time webhook ingestion engine by IbraSoft.",
   keywords: [
     "IbraSoft",
-    "LeadPortal",
+    "IbraSoft Leads Portal",
     "Lead Management SaaS",
     "Multi-Tenant Lead System",
     "Webhook Ingestion Engine",
@@ -55,21 +57,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://leadportal.ibrasoft.com",
-    siteName: "IbraSoft LeadPortal",
-    title: "IbraSoft LeadPortal v1.0.0 | Multi-Tenant Lead Management SaaS",
+    siteName: "IbraSoft Leads Portal",
+    title: "IbraSoft Leads Portal",
     description: "Enterprise multi-tenant lead management platform and real-time webhook ingestion engine by IbraSoft.",
     images: [
       {
         url: "/ibrasoft-full-logo.svg",
         width: 1200,
         height: 630,
-        alt: "IbraSoft LeadPortal Brand Artwork",
+        alt: "IbraSoft Leads Portal Brand Artwork",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "IbraSoft LeadPortal v1.0.0",
+    title: "IbraSoft Leads Portal",
     description: "Enterprise multi-tenant lead management platform and real-time webhook ingestion engine by IbraSoft.",
     images: ["/ibrasoft-full-logo.svg"],
     creator: "@IbraSoft",
@@ -87,7 +89,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-slate-50 text-slate-900 flex flex-col font-sans">{children}</body>
     </html>

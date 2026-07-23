@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { KpiCard } from '@/components/KpiCard';
 import { Users, Megaphone, Filter, Webhook, Download, ArrowUpRight, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useDashboardPoller } from '@/hooks/useDashboardPoller';
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -18,6 +19,13 @@ export default function AdminDashboardPage() {
       })
       .catch((err) => console.error(err));
   }, []);
+
+  // Real-time dashboard polling — auto-refreshes metrics and notifies on new leads
+  useDashboardPoller({
+    analyticsUrl: '/api/admin/analytics',
+    setData,
+    isInitialLoad: loading,
+  });
 
   if (loading) {
     return (
@@ -95,17 +103,32 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Leads by Source */}
+        {/* Client Tenant Distribution */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-base font-bold text-slate-900 flex items-center justify-between">
-            <span>Lead Ingestion Sources</span>
-            <span className="text-xs text-amber-600 font-bold">Origin</span>
+            <span>Client Tenant Distribution</span>
+            <span className="text-xs text-amber-600 font-bold">Tenants</span>
           </h2>
           <div className="space-y-3">
-            {data?.leadsBySource?.map((src: any) => (
-              <div key={src.source} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-xs font-bold text-slate-700">{src.source}</span>
-                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{src.count} captured</span>
+            {data?.leadsByClient?.map((client: any) => (
+              <div key={client.code} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">{client.name}</span>
+                    <span className="font-mono text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-bold">
+                      {client.code}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    {client.count} leads
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
+                    style={{ width: `${Math.min(100, (client.count / (data?.totalLeads || 1)) * 100)}%` }}
+                  ></div>
+                </div>
               </div>
             ))}
           </div>

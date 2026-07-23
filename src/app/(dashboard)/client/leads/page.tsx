@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Download, Filter, Eye } from 'lucide-react';
 import { PayloadInspectorModal } from '@/components/PayloadInspectorModal';
+import { useLeadPoller } from '@/hooks/useLeadPoller';
 
 export default function ClientLeadsPage() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -42,6 +43,24 @@ export default function ClientLeadsPage() {
       .then((r) => r.json())
       .then((d) => setCampaigns(d.campaigns || []));
   }, []);
+
+  // Real-time lead polling — auto-detects and notifies on new leads
+  const buildPollUrl = () => {
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    if (statusFilter) query.append('status', statusFilter);
+    if (campaignFilter) query.append('campaignId', campaignFilter);
+    if (startDate) query.append('startDate', startDate);
+    if (endDate) query.append('endDate', endDate);
+    return `/api/client/leads?${query.toString()}`;
+  };
+
+  useLeadPoller({
+    apiUrl: buildPollUrl(),
+    setLeads,
+    leads,
+    isInitialLoad: loading,
+  });
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();

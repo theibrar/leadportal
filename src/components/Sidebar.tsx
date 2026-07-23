@@ -52,19 +52,19 @@ export function Sidebar({ userRole, companyName, onNavClick }: SidebarProps) {
 
   return (
     <aside className="w-full lg:w-64 bg-white border-r border-slate-200 text-slate-700 flex flex-col h-full lg:h-screen sticky top-0 shadow-xs">
-      {/* Brand Header with Full Unclipped IbraSoft Logo */}
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      {/* Brand Header */}
+      <div className="px-5 py-5 border-b border-slate-100">
         <a
           href="http://ibrasoft.com/"
           target="_blank"
           rel="noopener noreferrer"
           onClick={onNavClick}
-          className="flex flex-col gap-1 hover:opacity-80 transition-opacity"
+          className="flex flex-col gap-2.5 hover:opacity-80 transition-opacity"
         >
-          <img src="/ibrasoft-full-logo.svg" alt="IbraSoft Logo" className="h-9 w-auto max-w-[170px] object-contain flex-shrink-0" />
-          <div className="flex items-center gap-1.5 ml-0.5">
-            <span className="text-[11px] font-black text-slate-900 tracking-tight">LeadPortal</span>
-            <span className="text-[9px] font-bold tracking-wider text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+          <img src="/ibrasoft-full-logo.svg" alt="IbraSoft Logo" className="h-11 w-auto object-contain object-left" />
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-mono font-semibold text-slate-800" style={{ letterSpacing: '-0.03em' }}>Leads Portal</span>
+            <span className="text-[9px] font-mono font-semibold tracking-wide text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">
               v1.0.0
             </span>
           </div>

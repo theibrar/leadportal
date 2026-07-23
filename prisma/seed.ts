@@ -22,7 +22,7 @@ async function main() {
   // 1. Create Admin User
   await prisma.user.create({
     data: {
-      email: 'admin@leadflow.com',
+      email: 'hussain@ibrasoft.com',
       passwordHash: hashedAdminPassword,
       role: 'ADMIN',
       isActive: true,

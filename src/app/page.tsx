@@ -6,8 +6,8 @@ import { Mail, ArrowRight, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@leadflow.com');
-  const [password, setPassword] = useState('Admin123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -67,8 +67,7 @@ export default function LoginPage() {
               <img src="/ibrasoft-full-logo.svg" alt="IbraSoft Logo" className="h-12 sm:h-14 w-auto object-contain" />
             </a>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">LeadPortal</h1>
-              <span className="inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
                 version 1.0.0
               </span>
             </div>
@@ -93,7 +92,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 required
-                placeholder="e.g. admin@leadflow.com"
+                placeholder="e.g. hussain@ibrasoft.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-900 focus:outline-none focus:border-blue-600 transition-all font-mono font-bold"

@@ -12,7 +12,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   try {
     const body = await request.json();
-    const { name, contactEmail, contactPhone, isActive, newPassword } = body;
+    const { name, contactEmail, contactPhone, isActive, newPassword, allowedIps } = body;
 
     const updatedClient = await prisma.client.update({
       where: { id },
@@ -20,6 +20,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         ...(name && { name }),
         ...(contactEmail && { contactEmail }),
         ...(contactPhone !== undefined && { contactPhone }),
+        ...(allowedIps !== undefined && { allowedIps: allowedIps ? allowedIps.trim() : null }),
         ...(isActive !== undefined && { isActive }),
       },
     });

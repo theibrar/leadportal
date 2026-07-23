@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { KpiCard } from '@/components/KpiCard';
 import { Filter, Megaphone, Download, Clock, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { useDashboardPoller } from '@/hooks/useDashboardPoller';
 
 export default function ClientDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -17,6 +18,13 @@ export default function ClientDashboardPage() {
         setLoading(false);
       });
   }, []);
+
+  // Real-time dashboard polling — auto-refreshes metrics and notifies on new leads
+  useDashboardPoller({
+    analyticsUrl: '/api/client/analytics',
+    setData,
+    isInitialLoad: loading,
+  });
 
   if (loading) {
     return (

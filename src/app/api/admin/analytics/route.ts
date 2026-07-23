@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized: Admin role required' }, { status: 403 });
   }
 
-  const [totalClients, totalCampaigns, totalLeads, leadsByStatusRaw, leadsBySourceRaw, recentLeads] = await Promise.all([
+  const [totalClients, totalCampaigns, totalLeads, leadsByStatusRaw, leadsBySourceRaw, recentLeads, clientsWithLeadCount] = await Promise.all([
     prisma.client.count(),
     prisma.campaign.count(),
     prisma.lead.count(),
@@ -28,6 +28,14 @@ export async function GET(request: Request) {
         campaign: { select: { name: true, code: true } },
       },
     }),
+    prisma.client.findMany({
+      include: {
+        _count: { select: { leads: true } },
+      },
+      orderBy: {
+        leads: { _count: 'desc' },
+      },
+    }),
   ]);
 
   const campaignsWithLeadCount = await prisma.campaign.findMany({
@@ -40,6 +48,13 @@ export async function GET(request: Request) {
     name: c.name,
     code: c.code,
     count: c._count.leads,
+  }));
+
+  const leadsByClient = clientsWithLeadCount.map((c) => ({
+    name: c.name,
+    code: c.companyCode,
+    count: c._count.leads,
+    isActive: c.isActive,
   }));
 
   const leadsByStatus = leadsByStatusRaw.map((item) => ({
@@ -57,6 +72,7 @@ export async function GET(request: Request) {
     totalCampaigns,
     totalLeads,
     leadsByCampaign,
+    leadsByClient,
     leadsByStatus,
     leadsBySource,
     recentLeads,

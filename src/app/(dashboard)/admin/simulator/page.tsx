@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, RefreshCw, Webhook } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 export default function WebhookSimulatorPage() {
+  const toast = useToast();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<string>('');
 
@@ -46,9 +48,10 @@ export default function WebhookSimulatorPage() {
   const handleSendWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAssignment) {
-      alert('Please select a target webhook campaign assignment.');
+      toast.warning('Please select a target webhook campaign assignment.');
       return;
     }
+
 
     setSending(true);
     setResponseLog(null);

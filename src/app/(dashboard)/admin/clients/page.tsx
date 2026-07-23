@@ -1,9 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Building2, Trash2, Edit, Ban, CheckCircle2, Copy, Check, Key } from 'lucide-react';
+import { Plus, Search, Building2, Trash2, Edit, Ban, CheckCircle2, Copy, Check, Key, Shield, Globe } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function ClientsManagementPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -11,7 +15,7 @@ export default function ClientsManagementPage() {
 
   // Create Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', companyCode: '', contactEmail: '', contactPhone: '', password: '' });
+  const [createForm, setCreateForm] = useState({ name: '', companyCode: '', contactEmail: '', contactPhone: '', password: '', allowedIps: '' });
   const [modalLoading, setModalLoading] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<any>(null);
   const [copiedPass, setCopiedPass] = useState(false);
@@ -25,6 +29,7 @@ export default function ClientsManagementPage() {
     contactPhone: '',
     isActive: true,
     newPassword: '',
+    allowedIps: '',
   });
 
   const fetchClients = () => {
@@ -44,6 +49,7 @@ export default function ClientsManagementPage() {
     const fullUrl = `${window.location.origin}/api/webhooks/ingest/${token}`;
     navigator.clipboard.writeText(fullUrl);
     setCopiedToken(token);
+    toast.success('Webhook endpoint URL copied to clipboard!');
     setTimeout(() => setCopiedToken(''), 2000);
   };
 
@@ -61,13 +67,14 @@ export default function ClientsManagementPage() {
 
       if (data.success) {
         setCreatedCredentials(data.generatedCredentials);
+        toast.success(`Client account "${createForm.name}" created successfully!`);
         fetchClients();
       } else {
-        alert(data.error || 'Failed to create client');
+        toast.error(data.error || 'Failed to create client');
       }
     } catch (err) {
       setModalLoading(false);
-      alert('An error occurred');
+      toast.error('An unexpected error occurred while creating client');
     }
   };
 
@@ -84,6 +91,7 @@ export default function ClientsManagementPage() {
           contactPhone: editForm.contactPhone,
           isActive: editForm.isActive,
           newPassword: editForm.newPassword,
+          allowedIps: editForm.allowedIps,
         }),
       });
       const data = await res.json();
@@ -93,36 +101,53 @@ export default function ClientsManagementPage() {
         setIsEditModalOpen(false);
         fetchClients();
         if (editForm.newPassword) {
-          alert('🎉 Client updated successfully! Password has been reset.');
+          toast.success('Client updated successfully! Password has been reset.');
+        } else {
+          toast.success('Client details updated successfully!');
         }
       } else {
-        alert(data.error || 'Failed to update client');
+        toast.error(data.error || 'Failed to update client');
       }
     } catch (err) {
       setModalLoading(false);
-      alert('An error occurred');
+      toast.error('An unexpected error occurred while updating client');
     }
   };
 
   const handleToggleSuspend = async (client: any) => {
     const newStatus = !client.isActive;
     const actionText = newStatus ? 'activate' : 'suspend';
-    if (!confirm(`Are you sure you want to ${actionText} client "${client.name}"?`)) return;
+    const confirmed = await confirm({
+      title: `${newStatus ? 'Activate' : 'Suspend'} Client`,
+      message: `Are you sure you want to ${actionText} client "${client.name}"?`,
+      confirmText: newStatus ? 'Activate Client' : 'Suspend Client',
+      variant: newStatus ? 'info' : 'warning',
+    });
+    if (!confirmed) return;
 
     await fetch(`/api/admin/clients/${client.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: newStatus }),
     });
+    toast.info(`Client "${client.name}" has been ${newStatus ? 'activated' : 'suspended'}.`);
     fetchClients();
   };
 
   const handleDeleteClient = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete client "${name}"? All assigned campaigns and lead data will be permanently removed.`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Client',
+      message: `Are you sure you want to delete client "${name}"? All assigned campaigns and lead data will be permanently removed.`,
+      confirmText: 'Delete Permanently',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     await fetch(`/api/admin/clients/${id}`, { method: 'DELETE' });
+    toast.success(`Client "${name}" was permanently deleted.`);
     fetchClients();
   };
+
 
   const filteredClients = clients.filter(
     (c) =>
@@ -137,12 +162,12 @@ export default function ClientsManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Client Tenant Management</h1>
-          <p className="text-sm text-slate-500 font-medium">Onboard clients, update details, set passwords, suspend/activate tenants</p>
+          <p className="text-sm text-slate-500 font-medium">Onboard clients, update details, set passwords, configure IP whitelists, suspend/activate tenants</p>
         </div>
         <button
           onClick={() => {
             setCreatedCredentials(null);
-            setCreateForm({ name: '', companyCode: '', contactEmail: '', contactPhone: '', password: '' });
+            setCreateForm({ name: '', companyCode: '', contactEmail: '', contactPhone: '', password: '', allowedIps: '' });
             setIsCreateModalOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20"
@@ -202,7 +227,24 @@ export default function ClientsManagementPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 font-mono text-blue-600 font-semibold">{client.contactEmail}</td>
+                    <td className="p-4">
+                      <p className="font-mono text-blue-600 font-semibold">{client.contactEmail}</p>
+                      <div className="mt-1">
+                        {client.allowedIps && client.allowedIps.trim() ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full cursor-help"
+                            title={`Whitelisted IPs:\n${client.allowedIps}`}
+                          >
+                            <Shield className="w-3 h-3 text-indigo-600" />
+                            {client.allowedIps.split(/[\n,\s]+/).filter(Boolean).length} IP(s) Whitelisted
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <Globe className="w-3 h-3 text-slate-400" /> Any IP Allowed
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4">
                       <div className="space-y-1.5 max-w-xs">
                         {client.assignments?.map((a: any) => (
@@ -247,11 +289,12 @@ export default function ClientsManagementPage() {
                               contactPhone: client.contactPhone || '',
                               isActive: client.isActive,
                               newPassword: '',
+                              allowedIps: client.allowedIps || '',
                             });
                             setIsEditModalOpen(true);
                           }}
                           className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                          title="Edit Client & Password"
+                          title="Edit Client Details, IP Whitelist & Password"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -400,6 +443,23 @@ export default function ClientsManagementPage() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-indigo-600" /> Allowed IP Whitelist (Optional)
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-normal">Comma or line separated</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. 192.168.1.10, 10.0.0.45 (Leave blank to allow any IP address)"
+                    value={createForm.allowedIps}
+                    onChange={(e) => setCreateForm({ ...createForm, allowedIps: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-xs placeholder-slate-400 font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">If set, users under this client tenant can ONLY log in from these IP addresses. Leave empty to allow any IP.</p>
+                </div>
+
                 <div className="pt-2 flex items-center justify-end gap-3">
                   <button
                     type="button"
@@ -428,7 +488,7 @@ export default function ClientsManagementPage() {
           <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Edit className="w-4 h-4 text-blue-600" /> Edit Client Details & Reset Password
+                <Edit className="w-4 h-4 text-blue-600" /> Edit Client Details, IP Whitelist & Reset Password
               </h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700 font-bold">
                 ✕
@@ -479,6 +539,23 @@ export default function ClientsManagementPage() {
                   onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600"
                 />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-indigo-600" /> Allowed IP Whitelist (Optional)
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Comma or line separated</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. 192.168.1.10, 10.0.0.45 (Leave blank to allow any IP address)"
+                  value={editForm.allowedIps}
+                  onChange={(e) => setEditForm({ ...editForm, allowedIps: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-xs placeholder-slate-400 font-medium"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">If set, users under this client tenant can ONLY log in from these IP addresses. Leave empty to allow any IP.</p>
               </div>
 
               <div>

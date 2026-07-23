@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, companyCode, contactEmail, contactPhone, password } = body;
+    const { name, companyCode, contactEmail, contactPhone, password, allowedIps } = body;
 
     if (!name || !companyCode || !contactEmail) {
       return NextResponse.json({ error: 'Name, company code, and email are required' }, { status: 400 });
@@ -58,6 +58,7 @@ export async function POST(request: Request) {
         companyCode: companyCode.toUpperCase(),
         contactEmail,
         contactPhone: contactPhone || null,
+        allowedIps: allowedIps ? allowedIps.trim() : null,
         users: {
           create: {
             email: contactEmail,

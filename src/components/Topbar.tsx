@@ -24,11 +24,12 @@ export function Topbar({ user, onToggleMobileMenu }: TopbarProps) {
           <Menu className="w-5 h-5" />
         </button>
 
-        <span className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 sm:gap-2">
-          <span className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-emerald-500 animate-pulse"></span> IbraSoft LeadPortal
-        </span>
-        <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-blue-50 border border-blue-200 text-blue-700 hidden sm:inline-block">
-          v1.0.0
+        <span className="text-xs sm:text-sm font-semibold text-slate-600 flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span className="text-emerald-600 font-bold text-xs tracking-wide">System Operational</span>
         </span>
       </div>
 

@@ -2,6 +2,27 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { comparePassword, signToken } from '@/lib/auth';
 
+function isIpAllowed(requestIp: string, allowedIpsRaw: string | null | undefined): boolean {
+  if (!allowedIpsRaw || !allowedIpsRaw.trim()) return true;
+
+  const allowedList = allowedIpsRaw
+    .split(/[\n,\s]+/)
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+
+  if (allowedList.length === 0) return true;
+
+  const reqIpClean = requestIp.trim();
+  const isReqLocalhost = reqIpClean === '127.0.0.1' || reqIpClean === '::1' || reqIpClean === '::ffff:127.0.0.1';
+
+  return allowedList.some((allowed) => {
+    if (allowed === reqIpClean) return true;
+    if (isReqLocalhost && (allowed === '127.0.0.1' || allowed === '::1' || allowed === 'localhost')) return true;
+    if (reqIpClean.endsWith(allowed) || allowed.endsWith(reqIpClean)) return true;
+    return false;
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -21,6 +42,21 @@ export async function POST(request: Request) {
 
     if (!user || !user.isActive) {
       return NextResponse.json({ error: 'Invalid credentials or inactive account' }, { status: 401 });
+    }
+
+    // IP Whitelist enforcement for Client tenant users
+    if (user.role === 'CLIENT' && user.client?.allowedIps) {
+      const rawIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+      const clientIp = rawIp.split(',')[0].trim();
+
+      if (!isIpAllowed(clientIp, user.client.allowedIps)) {
+        return NextResponse.json(
+          {
+            error: `Access Denied: Your IP address (${clientIp}) is not whitelisted for client "${user.client.name}". Please contact administrator.`,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const isMatch = await comparePassword(password, user.passwordHash);

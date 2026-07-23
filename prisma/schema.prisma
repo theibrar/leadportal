@@ -41,6 +41,7 @@ model Client {
   companyCode  String           @unique
   contactEmail String
   contactPhone String?
+  allowedIps   String?          // Comma or newline separated list of whitelisted IPs for login
   isActive     Boolean          @default(true)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -73,6 +74,7 @@ model ClientCampaign {
   
   webhookToken String     @unique @default(uuid())
   secretKey    String     @default(uuid())
+  allowedDomains String?  // Comma, space, or newline separated list of allowed domain names (e.g. landingpage.com, myagency.com)
   isActive     Boolean    @default(true)
   assignedAt   DateTime   @default(now())
 
