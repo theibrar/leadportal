@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+};
+
+// Handle CORS Preflight OPTIONS requests for cross-origin browser form submissions
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ webhookToken: string }> }) {
   const startTime = Date.now();
   const { webhookToken } = await params;
@@ -9,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
   let rawPayload: any = {};
   try {
     rawPayload = await request.json();
-  } catch (err) {
+  } catch {
     rawPayload = { rawBody: 'Invalid JSON' };
   }
 
@@ -38,7 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
         },
       });
     }
-    return NextResponse.json({ error: 'Invalid or inactive webhook endpoint' }, { status: 404 });
+    return NextResponse.json({ error: 'Invalid or inactive webhook endpoint' }, { status: 404, headers: corsHeaders });
   }
 
   // 1b. Domain Whitelist Validation
@@ -86,7 +100,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
       });
       return NextResponse.json(
         { error: 'Forbidden: Webhook ingestion request origin domain is not whitelisted' },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
   }
@@ -139,7 +153,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
         tenant: assignment.client.name,
         campaign: assignment.campaign.name,
       },
-      { status: 201 }
+      { status: 201, headers: corsHeaders }
     );
   } catch (error: any) {
     const executionTimeMs = Date.now() - startTime;
@@ -156,6 +170,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
       },
     });
 
-    return NextResponse.json({ error: 'Failed to process lead ingestion' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to process lead ingestion' }, { status: 500, headers: corsHeaders });
   }
 }
