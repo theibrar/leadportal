@@ -37,7 +37,7 @@ export default function CampaignsPage() {
   const [campaignForm, setCampaignForm] = useState({ name: '', code: '', description: '' });
   const [editCampaignForm, setEditCampaignForm] = useState({ id: '', name: '', code: '', description: '' });
   const [assignForm, setAssignForm] = useState({ clientId: '', campaignId: '', allowedDomains: '' });
-  const [editAssignmentForm, setEditAssignmentForm] = useState({ assignmentId: '', clientName: '', campaignName: '', allowedDomains: '' });
+  const [editAssignmentForm, setEditAssignmentForm] = useState({ assignmentId: '', clientName: '', campaignName: '', allowedDomains: '', isActive: true });
 
   const fetchData = async () => {
     const [cRes, clRes] = await Promise.all([fetch('/api/admin/campaigns'), fetch('/api/admin/clients')]);
@@ -152,16 +152,42 @@ export default function CampaignsPage() {
       body: JSON.stringify({
         assignmentId: editAssignmentForm.assignmentId,
         allowedDomains: editAssignmentForm.allowedDomains,
+        isActive: editAssignmentForm.isActive,
       }),
     });
     const data = await res.json();
 
     if (data.success) {
       setIsEditAssignmentModalOpen(false);
-      toast.success('Webhook domain whitelist updated successfully!');
+      toast.success('Webhook assignment updated successfully!');
       fetchData();
     } else {
-      toast.error(data.error || 'Failed to update domain whitelist');
+      toast.error(data.error || 'Failed to update assignment settings');
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string, clientName: string, campaignName: string) => {
+    const confirmed = await confirm({
+      title: 'Delete Webhook Assignment',
+      message: `Are you sure you want to delete the webhook assignment for "${clientName}" on campaign "${campaignName}"? This will permanently delete the webhook URL and all its associated leads and logs.`,
+      confirmText: 'Delete Permanently',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/admin/assign-campaign?assignmentId=${assignmentId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Webhook assignment deleted successfully.');
+        fetchData();
+      } else {
+        toast.error(data.error || 'Failed to delete assignment');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
     }
   };
 
@@ -272,24 +298,41 @@ export default function CampaignsPage() {
                 {c.assignments?.map((a: any) => (
                   <div key={a.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-blue-600" /> {a.client?.name}
+                      <span className="font-bold text-slate-900 flex items-center gap-1.5 truncate mr-2">
+                        <Users className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" /> <span className="truncate">{a.client?.name}</span>
+                        <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase flex-shrink-0 ${
+                          a.isActive
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-red-100 text-red-800 border border-red-200'
+                        }`}>
+                          {a.isActive ? 'ACTIVE' : 'PAUSED'}
+                        </span>
                       </span>
-                      <button
-                        onClick={() => {
-                          setEditAssignmentForm({
-                            assignmentId: a.id,
-                            clientName: a.client?.name || '',
-                            campaignName: c.name,
-                            allowedDomains: a.allowedDomains || '',
-                          });
-                          setIsEditAssignmentModalOpen(true);
-                        }}
-                        className="p-1 rounded bg-slate-200/60 hover:bg-blue-600 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 px-2 text-slate-700"
-                        title="Edit Webhook Security & Whitelisted Domains"
-                      >
-                        <Globe className="w-3 h-3 text-indigo-600" /> Security
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditAssignmentForm({
+                              assignmentId: a.id,
+                              clientName: a.client?.name || '',
+                              campaignName: c.name,
+                              allowedDomains: a.allowedDomains || '',
+                              isActive: a.isActive,
+                            });
+                            setIsEditAssignmentModalOpen(true);
+                          }}
+                          className="p-1 rounded bg-slate-200/60 hover:bg-blue-600 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 px-2 text-slate-700"
+                          title="Edit Webhook Settings & Whitelisted Domains"
+                        >
+                          <Globe className="w-3 h-3 text-indigo-600" /> Edit Settings
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAssignment(a.id, a.client?.name || '', c.name)}
+                          className="p-1 rounded bg-slate-200/60 hover:bg-red-600 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 px-1.5 text-slate-700"
+                          title="Delete Webhook Assignment"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Allowed Domains Badge */}
@@ -580,6 +623,18 @@ export default function CampaignsPage() {
                 <p className="text-[10px] text-slate-500 mt-1">
                   Requests coming from domains not listed here will be blocked before entering your database and logged as REJECTED.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Webhook Status</label>
+                <select
+                  value={editAssignmentForm.isActive ? 'active' : 'paused'}
+                  onChange={(e) => setEditAssignmentForm({ ...editAssignmentForm, isActive: e.target.value === 'active' })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-blue-600 font-bold text-xs"
+                >
+                  <option value="active">Active (Accept leads)</option>
+                  <option value="paused">Paused (Reject incoming leads)</option>
+                </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

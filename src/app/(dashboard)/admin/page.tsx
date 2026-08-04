@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
         <KpiCard title="Total Tenants / Clients" value={data?.totalClients || 0} subtext="Active Client Accounts" icon={Users} color="blue" trend="+100%" />
         <KpiCard title="Active Campaigns" value={data?.totalCampaigns || 0} subtext="Assigned Webhook Workflows" icon={Megaphone} color="purple" />
         <KpiCard title="Total Leads Captured" value={data?.totalLeads || 0} subtext="Across All Landing Pages" icon={Filter} color="emerald" trend="+24% this wk" />
-        <KpiCard title="System Webhooks" value="99.4%" subtext="Uptime & Delivery Success" icon={Webhook} color="amber" />
+        <KpiCard title="System Webhooks" value={data?.webhookSuccessRate || '100.0%'} subtext="Uptime & Delivery Success" icon={Webhook} color="amber" />
       </div>
 
       {/* Analytics Breakdown Grid */}

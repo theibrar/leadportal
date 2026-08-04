@@ -65,7 +65,7 @@ export function Sidebar({ userRole, companyName, onNavClick }: SidebarProps) {
           <div className="flex items-center gap-2">
             <span className="text-[12px] font-mono font-semibold text-slate-800" style={{ letterSpacing: '-0.03em' }}>Leads Portal</span>
             <span className="text-[9px] font-mono font-semibold tracking-wide text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">
-              v1.0.0
+              v1.0.1
             </span>
           </div>
         </a>

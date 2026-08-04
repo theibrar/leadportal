@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized: Admin role required' }, { status: 403 });
   }
 
-  const [totalClients, totalCampaigns, totalLeads, leadsByStatusRaw, leadsBySourceRaw, recentLeads, clientsWithLeadCount] = await Promise.all([
+  const [totalClients, totalCampaigns, totalLeads, leadsByStatusRaw, leadsBySourceRaw, recentLeads, clientsWithLeadCount, totalWebhookLogs, successWebhookLogs] = await Promise.all([
     prisma.client.count(),
     prisma.campaign.count(),
     prisma.lead.count(),
@@ -36,7 +36,13 @@ export async function GET(request: Request) {
         leads: { _count: 'desc' },
       },
     }),
+    prisma.webhookLog.count(),
+    prisma.webhookLog.count({ where: { status: 'SUCCESS' } }),
   ]);
+
+  const webhookSuccessRate = totalWebhookLogs > 0
+    ? `${((successWebhookLogs / totalWebhookLogs) * 100).toFixed(1)}%`
+    : '100.0%';
 
   const campaignsWithLeadCount = await prisma.campaign.findMany({
     include: {
@@ -76,5 +82,6 @@ export async function GET(request: Request) {
     leadsByStatus,
     leadsBySource,
     recentLeads,
+    webhookSuccessRate,
   });
 }

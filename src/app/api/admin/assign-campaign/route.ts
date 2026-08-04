@@ -78,3 +78,29 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to update assignment settings' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession(request);
+  if (!session || session.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const assignmentId = searchParams.get('assignmentId');
+
+    if (!assignmentId) {
+      return NextResponse.json({ error: 'Assignment ID is required' }, { status: 400 });
+    }
+
+    await prisma.clientCampaign.delete({
+      where: { id: assignmentId },
+    });
+
+    return NextResponse.json({ success: true, message: 'Assignment deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting assignment:', error);
+    return NextResponse.json({ error: 'Failed to delete campaign assignment' }, { status: 500 });
+  }
+}
+
