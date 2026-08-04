@@ -198,7 +198,7 @@ export default function MasterLeadsPage() {
                       </div>
                     </td>
                     <td className="p-4 font-medium text-slate-900">
-                      <span className="px-2 py-1 rounded bg-blue-50 border border-blue-200 font-bold text-blue-700">
+                      <span className="inline-block px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 font-bold text-blue-700 whitespace-nowrap">
                         {lead.client?.name}
                       </span>
                     </td>

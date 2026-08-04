@@ -1,6 +1,6 @@
 <svg viewBox="-10 -10 120 120" xmlns="http://www.w3.org/2000/svg">
   <!-- Blue Main Disc with Wedge Cutout -->
   <path d="M 50,0 A 50,50 0 1,1 23.2,76.8 L 70,50 L 23.2,23.2 A 50,50 0 0,1 50,0 Z" fill="#3525cd" />
-  <!-- Dark Navy Arrowhead -->
-  <path d="M 17,70.5 C 14.5,72 11.5,70.2 11.5,67.3 L 11.5,32.7 C 11.5,29.8 14.5,28 17,29.5 L 61,47.5 C 63.2,48.8 63.2,51.2 61,52.5 Z" fill="#11122b" />
+  <!-- White Arrowhead / Triangle Icon -->
+  <path d="M 17,70.5 C 14.5,72 11.5,70.2 11.5,67.3 L 11.5,32.7 C 11.5,29.8 14.5,28 17,29.5 L 61,47.5 C 63.2,48.8 63.2,51.2 61,52.5 Z" fill="#ffffff" />
 </svg>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { extractLeadFields } from '@/lib/payloadParser';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +22,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
   let rawPayload: any = {};
+  const contentType = request.headers.get('content-type') || '';
+
   try {
-    rawPayload = await request.json();
-  } catch {
-    rawPayload = { rawBody: 'Invalid JSON' };
+    if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const obj: Record<string, any> = {};
+      formData.forEach((value, key) => {
+        obj[key] = value;
+      });
+      rawPayload = obj;
+    } else {
+      const text = await request.text();
+      try {
+        rawPayload = JSON.parse(text);
+      } catch {
+        const params = new URLSearchParams(text);
+        const obj: Record<string, any> = {};
+        let keysCount = 0;
+        params.forEach((val, key) => {
+          obj[key] = val;
+          keysCount++;
+        });
+        if (keysCount > 0 && Object.keys(obj).some((k) => k !== text)) {
+          rawPayload = obj;
+        } else {
+          rawPayload = { rawBody: text || 'Empty Body' };
+        }
+      }
+    }
+  } catch (err: any) {
+    rawPayload = { rawBody: 'Error parsing body: ' + err.message };
   }
 
   // 1. Lookup ClientCampaign assignment
@@ -106,11 +134,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
   }
 
   // 2. Extract payload fields with flexible fallbacks
-  const firstName = rawPayload.firstName || rawPayload.first_name || rawPayload.name || 'Anonymous';
-  const lastName = rawPayload.lastName || rawPayload.last_name || '';
-  const email = rawPayload.email || rawPayload.contact_email || rawPayload.mail || 'N/A';
-  const phone = rawPayload.phone || rawPayload.contact_phone || rawPayload.mobile || rawPayload.phoneNumber || '';
-  const source = rawPayload.source || rawPayload.utm_source || 'WEBHOOK_LANDING_PAGE';
+  const { firstName, lastName, email, phone, source } = extractLeadFields(rawPayload);
 
   // 3. Create Lead and WebhookLog in database
   try {
