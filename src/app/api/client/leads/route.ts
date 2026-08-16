@@ -41,13 +41,36 @@ export async function GET(request: Request) {
     }
   }
 
-  const leads = await prisma.lead.findMany({
-    where: whereClause,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      campaign: { select: { id: true, name: true, code: true } },
-    },
-  });
+  const pageParam = searchParams.get('page');
+  const limitParam = searchParams.get('limit');
+  const isAll = limitParam === 'all';
 
-  return NextResponse.json({ leads, count: leads.length });
+  const limit = isAll ? undefined : Math.min(Math.max(parseInt(limitParam || '50', 10), 1), 500);
+  const page = Math.max(parseInt(pageParam || '1', 10), 1);
+  const skip = isAll || !limit ? undefined : (page - 1) * limit;
+
+  const [leads, totalCount] = await Promise.all([
+    prisma.lead.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        campaign: { select: { id: true, name: true, code: true } },
+      },
+    }),
+    prisma.lead.count({ where: whereClause }),
+  ]);
+
+  const totalPages = limit ? Math.ceil(totalCount / limit) : 1;
+
+  return NextResponse.json({
+    leads,
+    count: leads.length,
+    totalCount,
+    page,
+    limit: limit || totalCount,
+    totalPages,
+  });
 }
+

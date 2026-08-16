@@ -48,7 +48,14 @@ export function useLeadPoller({
 
   const pollForNewLeads = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl);
+      // Ensure poll request is lightweight (e.g. top 20 newest leads)
+      const pollUrl = new URL(apiUrl, window.location.origin);
+      if (!pollUrl.searchParams.has('limit')) {
+        pollUrl.searchParams.set('limit', '20');
+      }
+      pollUrl.searchParams.set('page', '1');
+
+      const res = await fetch(pollUrl.toString());
       if (!res.ok) return;
       const data = await res.json();
       const fetchedLeads: any[] = data.leads || [];
@@ -56,11 +63,9 @@ export function useLeadPoller({
       if (fetchedLeads.length === 0) return;
 
       // On the very first poll after mount, just seed the known IDs
-      // (don't show notifications for existing data)
       if (isFirstPollRef.current) {
         isFirstPollRef.current = false;
-        knownIdsRef.current = new Set(fetchedLeads.map((l) => l.id));
-        setLeads(fetchedLeads);
+        fetchedLeads.forEach((l) => knownIdsRef.current.add(l.id));
         return;
       }
 
@@ -69,11 +74,14 @@ export function useLeadPoller({
 
       if (newLeads.length > 0) {
         // Update the known IDs set
-        const updatedIds = new Set(fetchedLeads.map((l) => l.id));
-        knownIdsRef.current = updatedIds;
+        newLeads.forEach((l) => knownIdsRef.current.add(l.id));
 
-        // Update leads state with the full fresh list (already sorted by API)
-        setLeads(fetchedLeads);
+        // Prepend new leads to current state list
+        setLeads((prev) => {
+          const existingIds = new Set(prev.map((l) => l.id));
+          const uniqueNew = newLeads.filter((l) => !existingIds.has(l.id));
+          return [...uniqueNew, ...prev];
+        });
 
         // Play notification sound
         playLeadSound();
@@ -91,12 +99,9 @@ export function useLeadPoller({
             `🎯 ${newLeads.length} new leads just arrived!${contextLabel ? ` (${contextLabel})` : ''}`
           );
         }
-      } else {
-        // Even if no new leads, update the full list to catch any status changes, etc.
-        setLeads(fetchedLeads);
       }
     } catch {
-      // Silently fail on poll errors — don't disrupt the user experience
+      // Silently fail on poll errors
     }
   }, [apiUrl, setLeads, toast, contextLabel]);
 
