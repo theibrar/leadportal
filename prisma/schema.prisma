@@ -96,10 +96,20 @@ model Lead {
   email            String
   phone            String?
   source           String         @default("WEBHOOK")
-  status           String         @default("NEW") // NEW, CONTACTED, QUALIFIED, UNQUALIFIED, CONVERTED
+  status           String         @default("NEW") // NEW, CONTACTED, QUALIFIED, PROPOSAL, CONVERTED, UNQUALIFIED
   customData       String?        // JSON stringified payload fields (UTMs, notes)
   ipAddress        String?
   userAgent        String?
+
+  score            Int            @default(100)      // 0 to 100 Lead Quality Score
+  qualityGrade     String         @default("A")      // A, B, C, D, SPAM
+  isDuplicate      Boolean        @default(false)    // Duplicate lead flag
+  duplicateCount   Int            @default(0)        // Count of prior submissions
+  isSpam           Boolean        @default(false)    // Bot or spam submission
+  spamReason       String?                           // Explanation if flagged as spam
+  timezone         String?        @default("UTC")    // Lead or client timezone
+
+  notes            LeadNote[]
 
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -107,8 +117,24 @@ model Lead {
   @@index([clientId])
   @@index([campaignId])
   @@index([status])
+  @@index([score])
+  @@index([isDuplicate])
+  @@index([isSpam])
   @@index([createdAt])
   @@index([clientId, createdAt])
+}
+
+model LeadNote {
+  id         String   @id @default(uuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorName String
+  authorRole String   // ADMIN or CLIENT
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
 }
 
 model WebhookLog {

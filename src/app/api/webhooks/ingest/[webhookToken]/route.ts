@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { extractLeadFields } from '@/lib/payloadParser';
+import { analyzeLeadQuality } from '@/lib/leadQuality';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,7 +60,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
   const assignment = await prisma.clientCampaign.findUnique({
     where: { webhookToken },
     include: {
-      client: true,
+      client: {
+        include: {
+          users: {
+            include: { profile: true },
+          },
+        },
+      },
       campaign: true,
     },
   });
@@ -136,6 +143,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
   // 2. Extract payload fields with flexible fallbacks
   const { firstName, lastName, email, phone, source } = extractLeadFields(rawPayload);
 
+  // 2b. Lead Quality, Spam & Deduplication Engine
+  const clientTimezone = assignment.client.users?.[0]?.profile?.timezone || 'UTC';
+  const quality = await analyzeLeadQuality({
+    prisma,
+    clientId: assignment.clientId,
+    email,
+    phone,
+    firstName,
+    lastName,
+    rawPayload,
+    clientTimezone,
+  });
+
   // 3. Create Lead and WebhookLog in database
   try {
     const lead = await prisma.lead.create({
@@ -148,10 +168,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
         email,
         phone,
         source,
-        status: 'NEW',
+        status: quality.isSpam ? 'UNQUALIFIED' : 'NEW',
+        score: quality.score,
+        qualityGrade: quality.qualityGrade,
+        isDuplicate: quality.isDuplicate,
+        duplicateCount: quality.duplicateCount,
+        isSpam: quality.isSpam,
+        spamReason: quality.spamReason,
+        timezone: quality.detectedTimezone,
         customData: JSON.stringify(rawPayload),
         ipAddress,
         userAgent: request.headers.get('user-agent') || undefined,
+        notes:
+          quality.isDuplicate || quality.isSpam
+            ? {
+                create: {
+                  authorName: 'Quality Bot',
+                  authorRole: 'ADMIN',
+                  content: quality.isSpam
+                    ? `⚠️ Flagged as SPAM: ${quality.spamReason}`
+                    : `⚠️ Duplicate Lead: ${quality.duplicateCount} existing submission(s) found.`,
+                },
+              }
+            : undefined,
       },
     });
 
@@ -176,6 +215,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ web
         leadId: lead.id,
         tenant: assignment.client.name,
         campaign: assignment.campaign.name,
+        quality: {
+          score: lead.score,
+          grade: lead.qualityGrade,
+          isDuplicate: lead.isDuplicate,
+          duplicateCount: lead.duplicateCount,
+          isSpam: lead.isSpam,
+          timezone: lead.timezone,
+        },
       },
       { status: 201, headers: corsHeaders }
     );

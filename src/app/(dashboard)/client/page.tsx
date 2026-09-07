@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { KpiCard } from '@/components/KpiCard';
-import { Filter, Megaphone, Download, Clock, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Filter, Megaphone, Download, Clock, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardPoller } from '@/hooks/useDashboardPoller';
+import { TimestampCopyBadge } from '@/components/TimestampCopyBadge';
 
 export default function ClientDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -118,34 +119,65 @@ export default function ClientDashboardPage() {
                 <th className="p-4">Lead Name</th>
                 <th className="p-4">Email</th>
                 <th className="p-4">Campaign</th>
+                <th className="p-4">Quality Grade</th>
                 <th className="p-4">Status</th>
-                <th className="p-4">Ingested Date</th>
+                <th className="p-4">Timestamp & Timezone (1-Click Copy)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {data?.recentLeads?.map((lead: any) => (
-                <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 font-bold text-slate-900">
-                    {lead.firstName} {lead.lastName}
-                  </td>
-                  <td className="p-4 font-mono text-blue-600 font-semibold">{lead.email}</td>
-                  <td className="p-4 font-medium text-slate-800">{lead.campaign?.name}</td>
-                  <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                      lead.status === 'CONVERTED'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : lead.status === 'QUALIFIED'
-                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                        : 'bg-slate-100 text-slate-700'
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-slate-500 font-mono text-[11px]">
-                    {new Date(lead.createdAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {data?.recentLeads?.map((lead: any) => {
+                const score = lead.score ?? 100;
+                const grade = lead.qualityGrade ?? 'A';
+
+                const getGradeBadge = () => {
+                  if (grade === 'SPAM' || lead.isSpam)
+                    return 'bg-rose-100 text-rose-800 border-rose-300';
+                  if (score >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                  if (score >= 70) return 'bg-blue-100 text-blue-800 border-blue-300';
+                  return 'bg-amber-100 text-amber-800 border-amber-300';
+                };
+
+                return (
+                  <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-4">
+                      <div className="font-bold text-slate-900">
+                        {lead.firstName} {lead.lastName}
+                      </div>
+                      {lead.isDuplicate && (
+                        <span className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-200 text-[9px] font-extrabold">
+                          <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> Duplicate
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 font-mono text-blue-600 font-semibold">{lead.email}</td>
+                    <td className="p-4 font-medium text-slate-800">{lead.campaign?.name}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase ${getGradeBadge()}`}>
+                        Grade {grade} ({score}%)
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                        lead.status === 'CONVERTED'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : lead.status === 'QUALIFIED'
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <TimestampCopyBadge
+                        date={lead.createdAt}
+                        timezone={lead.timezone}
+                        leadName={`${lead.firstName} ${lead.lastName || ''}`}
+                        leadEmail={lead.email}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

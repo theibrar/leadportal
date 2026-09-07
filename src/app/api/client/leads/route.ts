@@ -57,6 +57,7 @@ export async function GET(request: Request) {
       take: limit,
       include: {
         campaign: { select: { id: true, name: true, code: true } },
+        _count: { select: { notes: true } },
       },
     }),
     prisma.lead.count({ where: whereClause }),
