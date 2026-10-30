@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/getSession';
 
@@ -35,20 +35,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     include: {
       client: { select: { id: true, name: true, companyCode: true } },
       campaign: { select: { id: true, name: true, code: true } },
-      notes: { orderBy: { createdAt: 'desc' } },
-      _count: { select: { notes: true } },
     },
   });
 
   if (status && status !== previousStatus) {
-    await prisma.leadNote.create({
-      data: {
-        leadId: id,
-        authorName: session.fullName || 'Admin',
-        authorRole: 'ADMIN',
-        content: `Status updated from ${previousStatus} to ${status}`,
-      },
-    });
+    try {
+      await prisma.leadNote.create({
+        data: {
+          leadId: id,
+          authorName: session.fullName || 'Admin',
+          authorRole: 'ADMIN',
+          content: `Status updated from ${previousStatus} to ${status}`,
+        },
+      });
+    } catch {
+      // Ignore if notes table is not yet migrated
+    }
   }
 
   return NextResponse.json({ success: true, lead: updatedLead });
@@ -66,8 +68,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     include: {
       client: { select: { id: true, name: true, companyCode: true } },
       campaign: { select: { id: true, name: true, code: true } },
-      notes: { orderBy: { createdAt: 'desc' } },
-      _count: { select: { notes: true } },
     },
   });
 

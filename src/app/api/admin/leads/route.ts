@@ -5,18 +5,22 @@ import { getSession } from '@/lib/getSession';
 export async function GET(request: Request) {
   const session = await getSession(request);
   if (!session || session.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    return NextResponse.json({ error: 'Unauthorized: Admin required' }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const status = searchParams.get('status') || '';
-  const clientId = searchParams.get('clientId') || '';
-  const campaignId = searchParams.get('campaignId') || '';
-  const startDate = searchParams.get('startDate') || '';
-  const endDate = searchParams.get('endDate') || '';
+  const search = searchParams.get('search');
+  const status = searchParams.get('status');
+  const clientId = searchParams.get('clientId');
+  const campaignId = searchParams.get('campaignId');
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
 
   const whereClause: any = {};
+
+  if (clientId) whereClause.clientId = clientId;
+  if (campaignId) whereClause.campaignId = campaignId;
+  if (status) whereClause.status = status;
 
   if (search) {
     whereClause.OR = [
@@ -26,10 +30,6 @@ export async function GET(request: Request) {
       { phone: { contains: search } },
     ];
   }
-
-  if (status) whereClause.status = status;
-  if (clientId) whereClause.clientId = clientId;
-  if (campaignId) whereClause.campaignId = campaignId;
 
   if (startDate || endDate) {
     whereClause.createdAt = {};
@@ -58,7 +58,6 @@ export async function GET(request: Request) {
       include: {
         client: { select: { id: true, name: true, companyCode: true } },
         campaign: { select: { id: true, name: true, code: true } },
-        _count: { select: { notes: true } },
       },
     }),
     prisma.lead.count({ where: whereClause }),
@@ -75,4 +74,3 @@ export async function GET(request: Request) {
     totalPages,
   });
 }
-

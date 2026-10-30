@@ -9,15 +9,18 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const status = searchParams.get('status') || '';
-  const campaignId = searchParams.get('campaignId') || '';
-  const startDate = searchParams.get('startDate') || '';
-  const endDate = searchParams.get('endDate') || '';
+  const search = searchParams.get('search');
+  const status = searchParams.get('status');
+  const campaignId = searchParams.get('campaignId');
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
 
   const whereClause: any = {
-    clientId: session.clientId, // Mandatory Tenant Isolation
+    clientId: session.clientId,
   };
+
+  if (campaignId) whereClause.campaignId = campaignId;
+  if (status) whereClause.status = status;
 
   if (search) {
     whereClause.OR = [
@@ -27,9 +30,6 @@ export async function GET(request: Request) {
       { phone: { contains: search } },
     ];
   }
-
-  if (status) whereClause.status = status;
-  if (campaignId) whereClause.campaignId = campaignId;
 
   if (startDate || endDate) {
     whereClause.createdAt = {};
@@ -57,7 +57,6 @@ export async function GET(request: Request) {
       take: limit,
       include: {
         campaign: { select: { id: true, name: true, code: true } },
-        _count: { select: { notes: true } },
       },
     }),
     prisma.lead.count({ where: whereClause }),
@@ -74,4 +73,3 @@ export async function GET(request: Request) {
     totalPages,
   });
 }
-
