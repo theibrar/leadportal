@@ -68,7 +68,7 @@ export default function LoginPage() {
             </a>
             <div>
               <span className="inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                version 1.0.1
+                version 1.0.2
               </span>
             </div>
             <p className="text-xs text-slate-500 max-w-xs mx-auto font-medium">

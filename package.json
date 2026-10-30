@@ -1,6 +1,6 @@
 {
   "name": "leadflow-saas",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -p 10009",
@@ -18,7 +18,8 @@
     "clsx": "^2.1.1",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.25.0",
-    "next": "16.2.11",
+    "next": "^16.4.3",
+    "nodemailer": "^10.3.1",
     "prisma": "^6.4.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -29,6 +30,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -40,5 +42,12 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
+  },
+  "allowScripts": {
+    "@prisma/client@6.4.0": true,
+    "@prisma/engines@6.4.0": true,
+    "esbuild@0.28.1": true,
+    "prisma@6.4.0": true,
+    "unrs-resolver@1.12.2": true
   }
 }

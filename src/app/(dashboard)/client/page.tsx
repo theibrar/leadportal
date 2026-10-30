@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { KpiCard } from '@/components/KpiCard';
-import { Filter, Megaphone, Download, Clock, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Filter, Megaphone, Download, Clock, ArrowUpRight, CheckCircle2, AlertTriangle, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardPoller } from '@/hooks/useDashboardPoller';
 import { TimestampCopyBadge } from '@/components/TimestampCopyBadge';
+import { TodaysAgendaWidget } from '@/components/TodaysAgendaWidget';
+import { ExecutiveDigestModal } from '@/components/ExecutiveDigestModal';
+import { LeadDetailDrawer } from '@/components/LeadDetailDrawer';
 
 export default function ClientDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isDigestOpen, setIsDigestOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
 
   useEffect(() => {
     fetch('/api/client/analytics')
@@ -43,12 +48,20 @@ export default function ClientDashboardPage() {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Tenant Client Dashboard</h1>
           <p className="text-sm text-slate-500 font-medium">Isolated lead metrics, assigned campaign workflows, and export engine</p>
         </div>
-        <a
-          href="/api/client/leads/export"
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20"
-        >
-          <Download className="w-4 h-4" /> Download My Leads (CSV)
-        </a>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsDigestOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all shadow-xs"
+          >
+            <Mail className="w-4 h-4 text-blue-600" /> Executive Digest
+          </button>
+          <a
+            href="/api/client/leads/export"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20"
+          >
+            <Download className="w-4 h-4" /> Download My Leads (CSV)
+          </a>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -57,6 +70,12 @@ export default function ClientDashboardPage() {
         <KpiCard title="Active Campaigns" value={data?.totalAssignedCampaigns || 0} subtext="Assigned Webhook Endpoints" icon={Megaphone} color="blue" />
         <KpiCard title="Webhook Status" value="100% Active" subtext="Real-time intake operational" icon={CheckCircle2} color="purple" />
       </div>
+
+      {/* Feature 1: Today's Action Agenda & Scheduled Tasks */}
+      <TodaysAgendaWidget
+        role="CLIENT"
+        onOpenLead={(lead) => setSelectedLead(lead)}
+      />
 
       {/* Analytics Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -84,61 +103,64 @@ export default function ClientDashboardPage() {
           </div>
         </div>
 
-        {/* Status Pipeline */}
+        {/* Leads by Status */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-base font-bold text-slate-900 flex items-center justify-between">
-            <span>Lead Status Pipeline</span>
-            <span className="text-xs text-emerald-600 font-bold">Qualification Funnel</span>
+            <span>Pipeline Progression</span>
+            <span className="text-xs text-emerald-600 font-bold">Status</span>
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {data?.leadsByStatus?.map((s: any) => (
-              <div key={s.status} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div key={s.status} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <p className="text-[10px] uppercase font-bold text-slate-500">{s.status}</p>
-                <p className="text-2xl font-black text-slate-900 mt-1">{s.count}</p>
+                <p className="text-xl font-black text-slate-900 mt-1">{s.count}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Recent Client Leads */}
+      {/* Recent Leads Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Your Recent Ingested Leads</h2>
-            <p className="text-xs text-slate-500 font-medium">Strictly tenant-scoped lead submissions</p>
+            <h2 className="text-base font-bold text-slate-900">Recent Ingested Leads</h2>
+            <p className="text-xs text-slate-500 font-medium">Latest customer inquiries delivered to your portal</p>
           </div>
           <Link href="/client/leads" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-            View All My Leads <ArrowUpRight className="w-3.5 h-3.5" />
+            View All Leads <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="p-4">Lead Name</th>
-                <th className="p-4">Email</th>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                <th className="p-4">Customer Name</th>
+                <th className="p-4">Email Address</th>
                 <th className="p-4">Campaign</th>
-                <th className="p-4">Quality Grade</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Timestamp & Timezone (1-Click Copy)</th>
+                <th className="p-4">Lead Quality</th>
+                <th className="p-4">Current Status</th>
+                <th className="p-4">Timestamp & Timezone</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+            <tbody className="divide-y divide-slate-100">
               {data?.recentLeads?.map((lead: any) => {
                 const score = lead.score ?? 100;
                 const grade = lead.qualityGrade ?? 'A';
 
                 const getGradeBadge = () => {
-                  if (grade === 'SPAM' || lead.isSpam)
-                    return 'bg-rose-100 text-rose-800 border-rose-300';
-                  if (score >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                  if (score >= 70) return 'bg-blue-100 text-blue-800 border-blue-300';
-                  return 'bg-amber-100 text-amber-800 border-amber-300';
+                  if (grade === 'SPAM' || lead.isSpam) return 'bg-rose-100 text-rose-800 border-rose-200';
+                  if (score >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                  if (score >= 70) return 'bg-blue-100 text-blue-800 border-blue-200';
+                  return 'bg-amber-100 text-amber-800 border-amber-200';
                 };
 
                 return (
-                  <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={lead.id}
+                    onClick={() => setSelectedLead(lead)}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
                     <td className="p-4">
                       <div className="font-bold text-slate-900">
                         {lead.firstName} {lead.lastName}
@@ -152,7 +174,7 @@ export default function ClientDashboardPage() {
                     <td className="p-4 font-mono text-blue-600 font-semibold">{lead.email}</td>
                     <td className="p-4 font-medium text-slate-800">{lead.campaign?.name}</td>
                     <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase ${getGradeBadge()}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider whitespace-nowrap inline-flex items-center justify-center shrink-0 leading-normal ${getGradeBadge()}`}>
                         Grade {grade} ({score}%)
                       </span>
                     </td>
@@ -182,6 +204,23 @@ export default function ClientDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Executive Digest Modal */}
+      <ExecutiveDigestModal
+        isOpen={isDigestOpen}
+        onClose={() => setIsDigestOpen(false)}
+        clientName={data?.clientName || 'Your Account'}
+        totalLeads={data?.totalLeads || 0}
+        totalCampaigns={data?.totalAssignedCampaigns || 0}
+      />
+
+      {/* Lead Detail Drawer */}
+      <LeadDetailDrawer
+        lead={selectedLead}
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        role="CLIENT"
+      />
     </div>
   );
 }

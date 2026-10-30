@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { KpiCard } from '@/components/KpiCard';
-import { Users, Megaphone, Filter, Webhook, Download, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react';
+import { Users, Megaphone, Filter, Webhook, Download, ArrowUpRight, Clock, AlertTriangle, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardPoller } from '@/hooks/useDashboardPoller';
 import { TimestampCopyBadge } from '@/components/TimestampCopyBadge';
+import { TodaysAgendaWidget } from '@/components/TodaysAgendaWidget';
+import { ExecutiveDigestModal } from '@/components/ExecutiveDigestModal';
+import { LeadDetailDrawer } from '@/components/LeadDetailDrawer';
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isDigestOpen, setIsDigestOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
 
   useEffect(() => {
     fetch('/api/admin/analytics')
@@ -45,6 +50,12 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-slate-500 font-medium">Real-time multi-tenant acquisition & client metrics</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsDigestOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all shadow-xs"
+          >
+            <Mail className="w-4 h-4 text-blue-600" /> Executive Digest
+          </button>
           <a
             href="/api/admin/leads/export"
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20"
@@ -61,6 +72,12 @@ export default function AdminDashboardPage() {
         <KpiCard title="Total Leads Captured" value={data?.totalLeads || 0} subtext="Across All Landing Pages" icon={Filter} color="emerald" trend="+24% this wk" />
         <KpiCard title="System Webhooks" value={data?.webhookSuccessRate || '100.0%'} subtext="Uptime & Delivery Success" icon={Webhook} color="amber" />
       </div>
+
+      {/* Feature 1: Today's Action Agenda & Scheduled Tasks */}
+      <TodaysAgendaWidget
+        role="ADMIN"
+        onOpenLead={(lead) => setSelectedLead(lead)}
+      />
 
       {/* Analytics Breakdown Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -148,33 +165,36 @@ export default function AdminDashboardPage() {
           </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="p-4">Lead Name</th>
-                <th className="p-4">Email</th>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                <th className="p-4">Customer Name</th>
+                <th className="p-4">Email Address</th>
                 <th className="p-4">Tenant Client</th>
                 <th className="p-4">Campaign</th>
-                <th className="p-4">Quality Grade</th>
+                <th className="p-4">Lead Quality</th>
                 <th className="p-4">Status</th>
-                <th className="p-4">Timestamp & Timezone (1-Click Copy)</th>
+                <th className="p-4">Timestamp & Timezone</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+            <tbody className="divide-y divide-slate-100">
               {data?.recentLeads?.map((lead: any) => {
                 const score = lead.score ?? 100;
                 const grade = lead.qualityGrade ?? 'A';
 
                 const getGradeBadge = () => {
-                  if (grade === 'SPAM' || lead.isSpam)
-                    return 'bg-rose-100 text-rose-800 border-rose-300';
-                  if (score >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                  if (score >= 70) return 'bg-blue-100 text-blue-800 border-blue-300';
-                  return 'bg-amber-100 text-amber-800 border-amber-300';
+                  if (grade === 'SPAM' || lead.isSpam) return 'bg-rose-100 text-rose-800 border-rose-200';
+                  if (score >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                  if (score >= 70) return 'bg-blue-100 text-blue-800 border-blue-200';
+                  return 'bg-amber-100 text-amber-800 border-amber-200';
                 };
 
                 return (
-                  <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={lead.id}
+                    onClick={() => setSelectedLead(lead)}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
                     <td className="p-4">
                       <div className="font-bold text-slate-900">
                         {lead.firstName} {lead.lastName}
@@ -193,7 +213,7 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="p-4 font-medium text-slate-800">{lead.campaign?.name}</td>
                     <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase ${getGradeBadge()}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider whitespace-nowrap inline-flex items-center justify-center shrink-0 leading-normal ${getGradeBadge()}`}>
                         Grade {grade} ({score}%)
                       </span>
                     </td>
@@ -223,6 +243,23 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Executive Digest Modal */}
+      <ExecutiveDigestModal
+        isOpen={isDigestOpen}
+        onClose={() => setIsDigestOpen(false)}
+        clientName="Master Platform Audit"
+        totalLeads={data?.totalLeads || 0}
+        totalCampaigns={data?.totalCampaigns || 0}
+      />
+
+      {/* Lead Detail Drawer */}
+      <LeadDetailDrawer
+        lead={selectedLead}
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        role="ADMIN"
+      />
     </div>
   );
 }

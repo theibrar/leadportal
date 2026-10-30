@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Megaphone, Copy, Check, Code, Webhook, Trash2, Globe, ShieldCheck, Play, Pause } from 'lucide-react';
+import { Megaphone, Copy, Check, Code, Webhook, Trash2, Globe, ShieldCheck, Play, Pause, Layers } from 'lucide-react';
 import { WebhookCopyBox } from '@/components/WebhookCopyBox';
+import { FormWidgetModal } from '@/components/FormWidgetModal';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -12,6 +13,13 @@ export default function ClientCampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSnippetTab, setActiveSnippetTab] = useState<'curl' | 'js'>('curl');
+
+  // Embeddable Form Widget Modal state
+  const [widgetModal, setWidgetModal] = useState<{ isOpen: boolean; campaignName: string; webhookToken: string }>({
+    isOpen: false,
+    campaignName: '',
+    webhookToken: '',
+  });
 
   // Edit Assignment modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -157,6 +165,20 @@ export default function ClientCampaignsPage() {
                       {c.leadCount} Ingested Leads
                     </span>
 
+                    {/* Embeddable Form & Popup Widget Generator Button */}
+                    <button
+                      onClick={() => {
+                        setWidgetModal({
+                          isOpen: true,
+                          campaignName: c.name,
+                          webhookToken: c.webhookToken,
+                        });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-xs font-bold transition-all shadow-2xs"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-blue-600" /> Form & Popup Widget
+                    </button>
+
                     {/* Manage Button */}
                     <button
                       onClick={() => {
@@ -239,40 +261,37 @@ export default function ClientCampaignsPage() {
         )}
       </div>
 
-      {/* Modal: Edit Webhook Settings (Client Side) */}
+      {/* Modal: Edit Settings */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Globe className="w-5 h-5 text-indigo-600" /> Webhook Settings & Security
-              </h3>
+              <h3 className="text-base font-bold text-slate-900">Configure Webhook Settings</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700">
                 ✕
               </button>
             </div>
-
             <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                <p className="text-slate-900 font-bold">Campaign: {editForm.name}</p>
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Campaign</label>
+                <input
+                  type="text"
+                  disabled
+                  value={editForm.name}
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-500 font-bold cursor-not-allowed"
+                />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-4 h-4 text-indigo-600" /> Whitelisted Ingestion Domains
-                  </span>
-                </label>
+                <label className="block text-slate-700 font-bold mb-1">Allowed Request Origin Domains</label>
                 <textarea
-                  placeholder="e.g. landingpage.com, myagency.com&#10;(Separate multiple domains with commas or newlines. Leave blank to allow any origin)"
+                  rows={3}
                   value={editForm.allowedDomains}
                   onChange={(e) => setEditForm({ ...editForm, allowedDomains: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-[11px]"
-                  rows={3}
-                ></textarea>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Requests originating from domains not listed here will be rejected with HTTP 403.
-                </p>
+                  placeholder="e.g. mysite.com, landingpage.io (leave empty to allow all)"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-600 font-mono text-xs"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Separate multiple domains with commas, spaces, or new lines.</p>
               </div>
 
               <div>
@@ -303,6 +322,14 @@ export default function ClientCampaignsPage() {
           </div>
         </div>
       )}
+
+      {/* Embeddable Form Widget Generator Modal */}
+      <FormWidgetModal
+        isOpen={widgetModal.isOpen}
+        onClose={() => setWidgetModal((prev) => ({ ...prev, isOpen: false }))}
+        campaignName={widgetModal.campaignName}
+        webhookToken={widgetModal.webhookToken}
+      />
     </div>
   );
 }

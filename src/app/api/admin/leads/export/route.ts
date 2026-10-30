@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     orderBy: { createdAt: 'desc' },
     include: {
       client: { select: { name: true } },
-      campaign: { select: { name: true } },
+      campaign: { select: { name: true, code: true } },
     },
   });
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Megaphone, Plus, Link2, Copy, Check, Users, Webhook, Sparkles, Edit, Trash2, Globe, ShieldCheck } from 'lucide-react';
+import { Megaphone, Plus, Link2, Copy, Check, Users, Webhook, Sparkles, Edit, Trash2, Globe, ShieldCheck, Layers } from 'lucide-react';
+import { FormWidgetModal } from '@/components/FormWidgetModal';
 import { WebhookCopyBox } from '@/components/WebhookCopyBox';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -32,6 +33,11 @@ export default function CampaignsPage() {
   const [isEditCampaignModalOpen, setIsEditCampaignModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isEditAssignmentModalOpen, setIsEditAssignmentModalOpen] = useState(false);
+  const [widgetModal, setWidgetModal] = useState<{ isOpen: boolean; campaignName: string; webhookToken: string }>({
+    isOpen: false,
+    campaignName: '',
+    webhookToken: '',
+  });
 
   // Form states
   const [campaignForm, setCampaignForm] = useState({ name: '', code: '', description: '' });
@@ -309,6 +315,19 @@ export default function CampaignsPage() {
                         </span>
                       </span>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setWidgetModal({
+                              isOpen: true,
+                              campaignName: `${a.client?.name || 'Client'} - ${c.name}`,
+                              webhookToken: a.webhookToken,
+                            });
+                          }}
+                          className="p-1 rounded bg-blue-50 hover:bg-blue-600 hover:text-white transition-all text-[10px] font-bold flex items-center gap-1 px-2 text-blue-700"
+                          title="Generate Embeddable Multi-Step Form or Floating Widget"
+                        >
+                          <Layers className="w-3 h-3 text-blue-600" /> Form & Widget
+                        </button>
                         <button
                           onClick={() => {
                             setEditAssignmentForm({
@@ -653,6 +672,14 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
+
+      {/* Embeddable Form Widget Generator Modal */}
+      <FormWidgetModal
+        isOpen={widgetModal.isOpen}
+        onClose={() => setWidgetModal((prev) => ({ ...prev, isOpen: false }))}
+        campaignName={widgetModal.campaignName}
+        webhookToken={widgetModal.webhookToken}
+      />
     </div>
   );
 }
